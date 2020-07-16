@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+package loos.grpc;
+
+
+service Greeter {
+  rpc SayHello (HelloRequest) returns (HelloReply) {}
+  rpc DoSomething(InnerRequest) returns (Empty) {}
+}
+
+message HelloRequest {
+  string name = 1;
+  InnerRequest inner = 2;
+  DayOfWeek day = 3;
+}
+
+message HelloReply {
+  string message = 1;
+}
+
+message InnerRequest {
+  string inner = 1;
+  repeated double numbers = 2;
+  bool correct = 3;
+  bytes rawBytes = 4;
+
+}
+
+message Empty{
+
+}
+
+enum DayOfWeek {
+  MONDAY = 0;
+  TUESDAY = 1;
+
+}

@@ -8,10 +8,10 @@ import java.util.List;
 
 public class GrpcService {
 
-    private DynamicSchema schema;
     //TODO support multiple services
-    private Service service;
-    private List<Message> messageList;
+    private final Service service;
+    private final List<Message> messageList;
+    private DynamicSchema schema;
 
 
     public GrpcService(DynamicSchema schema, Service service, List<Message> messageList) {
@@ -25,12 +25,12 @@ public class GrpcService {
         this.messageList = messageList;
     }
 
-    public void setSchema(DynamicSchema schema) {
-        this.schema = schema;
-    }
-
     public DynamicSchema getSchema() {
         return schema;
+    }
+
+    public void setSchema(DynamicSchema schema) {
+        this.schema = schema;
     }
 
     public Service getService() {

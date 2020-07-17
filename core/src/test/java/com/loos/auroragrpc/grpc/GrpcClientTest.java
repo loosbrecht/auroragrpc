@@ -6,7 +6,7 @@ import com.loos.auroragrpc.GrpcService;
 import com.loos.auroragrpc.entity.Method;
 import com.loos.auroragrpc.entity.Service;
 import com.loos.auroragrpc.protobuf.ProtobufInterpreter;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -21,14 +21,14 @@ class GrpcClientTest {
     InputStream protoFile;
     GrpcService grpcService;
 
-    @BeforeAll
+    @BeforeEach
     void setUp() throws IOException, Descriptors.DescriptorValidationException {
         URL url = Thread.currentThread().getContextClassLoader().getResource("descriptor");
         assert url != null;
         File f = new File(url.getPath());
         protoFile = new FileInputStream(f);
         ProtobufInterpreter protobufInterpreter = new ProtobufInterpreter(protoFile);
-        GrpcService grpcService = protobufInterpreter.parseProtobufFile();
+        grpcService = protobufInterpreter.parseProtobufFile();
 
     }
 
@@ -43,6 +43,11 @@ class GrpcClientTest {
                 Do(msg);
         System.out.println(response);
 
+    }
+
+    @Test
+    public void TestGetJsonStructure() {
+        System.out.println(grpcService.getMessageList().get(0).getJsonStructure());
     }
 
 }

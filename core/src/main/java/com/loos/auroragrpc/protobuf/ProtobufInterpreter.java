@@ -30,13 +30,15 @@ public class ProtobufInterpreter {
             switch (field.getType()) {
                 case TYPE_MESSAGE:
                     types.add(new MessagePlaceHolder(field.getTypeName()));
+                    continue;
                 case TYPE_ENUM:
-                    //TODO implement me
+                    //  types.add(new Enum(field.getName()));
                 default:
-                    types.add(new Field(field.getName(), field.getType().name()));
+                    types.add(new Field(field.getName(), field.getType(), field.getType().name()));
+                    continue;
             }
         }
-        return new Message(name, types);
+        return new Message(name, "", types);
     }
 
     public GrpcService parseProtobufFile() throws IOException, Descriptors.DescriptorValidationException {
@@ -89,14 +91,18 @@ public class ProtobufInterpreter {
     private List<Message> parseForMessages(DescriptorProtos.FileDescriptorProto descriptorProto) {
         List<DescriptorProtos.DescriptorProto> messageTypeList = descriptorProto.getMessageTypeList();
         List<Message> messages = messageTypeList.stream().map(ProtobufInterpreter::createMessage).collect(Collectors.toList());
-        for (Message message : messages) {
+        for (int i = 0; i < messages.size(); i++) {
+            Message message = messages.get(i);
             List<Type> fields = message.getFields();
-            for (int i = 0; i < fields.size(); i++) {
-                Type field = fields.get(i);
+            for (int j = 0; j < fields.size(); j++) {
+                Type field = fields.get(j);
                 if (field instanceof MessagePlaceHolder) {
                     Optional<Message> first = findMessage(messages, field.getName());
                     if (first.isPresent()) {
-                        fields.set(i, first.get());
+                        String innerName = messageTypeList.get(i).getField(j).getName();
+                        Message innerMessage = new Message(first.get());
+                        innerMessage.setInnerName(innerName);
+                        fields.set(j, innerMessage);
                     }
                 }
             }

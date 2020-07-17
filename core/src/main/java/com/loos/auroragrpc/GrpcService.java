@@ -40,4 +40,13 @@ public class GrpcService {
     public List<Message> getMessageList() {
         return messageList;
     }
+
+    @Override
+    public String toString() {
+        return "GrpcService{" +
+                "schema=" + schema +
+                ", service=" + service +
+                ", messageList=" + messageList +
+                '}';
+    }
 }

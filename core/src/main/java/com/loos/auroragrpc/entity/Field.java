@@ -9,4 +9,11 @@ public class Field extends Type {
         super(name);
         this.typeName = typeName;
     }
+
+    @Override
+    public String toString() {
+        return "Field{" +
+                "typeName='" + typeName + '\'' +
+                '}';
+    }
 }

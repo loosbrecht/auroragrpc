@@ -12,4 +12,13 @@ public class Service {
         this.packageName = packageName;
         this.methods = methods;
     }
+
+    @Override
+    public String toString() {
+        return "Service{" +
+                "name='" + name + '\'' +
+                ", packageName='" + packageName + '\'' +
+                ", methods=" + methods +
+                '}';
+    }
 }

@@ -12,4 +12,20 @@ public class Method {
         this.response = response;
     }
 
+    public Message getRequest() {
+        return request;
+    }
+
+    public Message getResponse() {
+        return response;
+    }
+
+    @Override
+    public String toString() {
+        return "Method{" +
+                "name='" + name + '\'' +
+                ", request=" + request +
+                ", response=" + response +
+                '}';
+    }
 }

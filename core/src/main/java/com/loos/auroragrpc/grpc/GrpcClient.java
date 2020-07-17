@@ -2,7 +2,7 @@ package com.loos.auroragrpc.grpc;
 
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
-import com.loos.auroragrpc.GrpcService;
+import com.loos.auroragrpc.entity.Message;
 import com.loos.auroragrpc.entity.Method;
 import com.loos.auroragrpc.entity.Service;
 import io.grpc.CallOptions;
@@ -13,18 +13,14 @@ import io.grpc.stub.ClientCalls;
 
 public class GrpcClient {
 
-    private io.grpc.Channel channel;
-    private String packageName;
+    private final io.grpc.Channel channel;
     private Service service;
     private MethodDescriptor<DynamicMessage, DynamicMessage> methodDescriptor;
 
-    public GrpcClient(String host, String packageName) {
-
-        ManagedChannelBuilder<?> builder = ManagedChannelBuilder.forAddress("localhost", 8000);
+    public GrpcClient(String host, int port) {
+        ManagedChannelBuilder<?> builder = ManagedChannelBuilder.forAddress(host, port);
         builder.usePlaintext();
         this.channel = builder.build();
-        this.packageName = packageName;
-
     }
 
     public GrpcClient AddService(Service service) {
@@ -32,16 +28,16 @@ public class GrpcClient {
         return this;
     }
 
-    public GrpcService AddMethod(Method method) {
-        Message input = (Message) method.getInput();
-        Message output = (Message) method.getOutput();
+    public GrpcClient AddMethod(Method method) {
+        Message request = method.getRequest();
+        Message response = method.getResponse();
 
-        Descriptors.Descriptor inputType = input.getDescriptor().getDescriptorForType();
-        Descriptors.Descriptor outputType = output.getDescriptor().getDescriptorForType();
+        Descriptors.Descriptor inputType = request.getDescriptor();
+        Descriptors.Descriptor outputType = response.getDescriptor();
 
         MethodDescriptor.Marshaller<DynamicMessage> inputMarshaller = io.grpc.protobuf.ProtoUtils.marshaller(DynamicMessage.newBuilder(inputType).buildPartial());
         MethodDescriptor.Marshaller<DynamicMessage> outputMarshaller = io.grpc.protobuf.ProtoUtils.marshaller(DynamicMessage.newBuilder(outputType).buildPartial());
-        String fullMethodName = MethodDescriptor.generateFullMethodName(service.GetFullServiceName(), method.getMethodDescriptorProto().getName());
+        String fullMethodName = MethodDescriptor.generateFullMethodName(service.GetFullServiceName(), method.getName());
         this.methodDescriptor = MethodDescriptor.newBuilder(inputMarshaller, outputMarshaller).
                 setType(MethodDescriptor.MethodType.UNKNOWN)
                 .setFullMethodName(fullMethodName)

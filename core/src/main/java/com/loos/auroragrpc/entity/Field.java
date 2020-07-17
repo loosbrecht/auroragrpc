@@ -1,11 +1,13 @@
 package com.loos.auroragrpc.entity;
 
+import com.google.protobuf.DynamicMessage;
+
 public class Field extends Type {
 
-    private String typeName;
+    private final String typeName;
 
 
-    public Field(String name,String typeName) {
+    public Field(String name, String typeName) {
         super(name);
         this.typeName = typeName;
     }
@@ -15,5 +17,11 @@ public class Field extends Type {
         return "Field{" +
                 "typeName='" + typeName + '\'' +
                 '}';
+    }
+
+    @Override
+    public DynamicMessage Build() {
+
+        return null;
     }
 }

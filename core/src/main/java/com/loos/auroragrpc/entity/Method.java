@@ -28,4 +28,8 @@ public class Method {
                 ", response=" + response +
                 '}';
     }
+
+    public String getName() {
+        return name;
+    }
 }

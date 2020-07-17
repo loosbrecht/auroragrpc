@@ -18,7 +18,7 @@ public class ProtobufInterpreter {
     private final InputStream protobufInputStream;
     private String packageName;
 
-    ProtobufInterpreter(InputStream protobufInputStream) {
+    public ProtobufInterpreter(InputStream protobufInputStream) {
         this.protobufInputStream = protobufInputStream;
     }
 
@@ -52,6 +52,7 @@ public class ProtobufInterpreter {
         GrpcService service = parseProtobufDescriptor(descriptorProto);
         service.setSchema(dynamicSchema);
         service.getMessageList().forEach(m -> m.createBuilder(dynamicSchema));
+        service.getMessageList().forEach(m -> m.setDescriptor(descriptorProto));
         return service;
     }
 
@@ -93,7 +94,7 @@ public class ProtobufInterpreter {
             for (int i = 0; i < fields.size(); i++) {
                 Type field = fields.get(i);
                 if (field instanceof MessagePlaceHolder) {
-                    Optional<Message> first = findMessage(messages, ((MessagePlaceHolder) field).getName());
+                    Optional<Message> first = findMessage(messages, field.getName());
                     if (first.isPresent()) {
                         fields.set(i, first.get());
                     }

@@ -2,7 +2,7 @@ package com.loos.auroragrpc.protobuf;
 
 import com.google.protobuf.Descriptors;
 import com.loos.auroragrpc.GrpcService;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.*;
@@ -12,7 +12,7 @@ class ProtobufInterpreterTest {
 
     InputStream protoFile;
 
-    @BeforeEach
+    @BeforeAll
     void setUp() throws FileNotFoundException {
         URL url = Thread.currentThread().getContextClassLoader().getResource("descriptor");
         assert url != null;

@@ -1,11 +1,8 @@
-package com.loos.auroragrpc.grpc;
+package com.loos.auroragrpc.entity;
 
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.loos.auroragrpc.GrpcService;
-import com.loos.auroragrpc.entity.Message;
-import com.loos.auroragrpc.entity.Method;
-import com.loos.auroragrpc.entity.Service;
 import com.loos.auroragrpc.protobuf.ProtobufInterpreter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,12 +15,11 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
-class GrpcClientTest {
+class MessageTest {
 
 
     InputStream protoFile;
     GrpcService grpcService;
-    DynamicMessage dynMsg;
 
     @BeforeEach
     void setUp() throws IOException, Descriptors.DescriptorValidationException {
@@ -34,6 +30,10 @@ class GrpcClientTest {
         ProtobufInterpreter protobufInterpreter = new ProtobufInterpreter(protoFile);
         grpcService = protobufInterpreter.parseProtobufFile();
 
+    }
+
+    @Test
+    void build() {
         Message message = grpcService.getMessageList().get(0);
         Map<String, Object> helloRequest = new HashMap<>();
         helloRequest.put("name", "hellooo");
@@ -44,24 +44,7 @@ class GrpcClientTest {
         });
         inner.put("correct", true);
         helloRequest.put("inner", inner);
-        dynMsg = message.build(helloRequest);
+        DynamicMessage build = message.build(helloRequest);
+        System.out.println(build);
     }
-
-
-    @Test
-    public void TestGrpcCall() {
-        Service service = grpcService.getService();
-        Method method = service.getMethods().get(0);
-        DynamicMessage response = new GrpcClient("localhost", 8000).
-                AddService(service).AddMethod(method).
-                Do(dynMsg);
-        System.out.println(response);
-
-    }
-
-    @Test
-    public void TestGetJsonStructure() {
-        System.out.println(grpcService.getMessageList().get(0).getJsonStructure());
-    }
-
 }

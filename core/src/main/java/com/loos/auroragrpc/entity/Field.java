@@ -2,7 +2,6 @@ package com.loos.auroragrpc.entity;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.DescriptorProtos;
-import com.google.protobuf.DynamicMessage;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,11 +23,6 @@ public class Field extends Type {
         return "Field{" +
                 "typeName='" + typeName + '\'' +
                 '}';
-    }
-
-    @Override
-    public DynamicMessage Build() {
-        return null;
     }
 
     @Override

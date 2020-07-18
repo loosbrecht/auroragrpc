@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Message extends Type implements Cloneable {
+public class Message extends Type {
 
     private List<Type> fields;
     private DynamicMessage.Builder builder;
@@ -73,10 +73,30 @@ public class Message extends Type implements Cloneable {
         this.innerName = innerName;
     }
 
-    @Override
-    public DynamicMessage Build() {
-
-        return null;
+    public DynamicMessage build(Map<String, Object> input) {
+        Descriptors.Descriptor descr = builder.getDescriptorForType();
+        for (Type field : this.fields) {
+            if (field instanceof Field && input.containsKey(field.getName())) {
+                Descriptors.FieldDescriptor fieldByName = descr.findFieldByName(field.getName());
+                Object val = input.get(field.getName());
+                if (val.getClass().isArray()) {
+                    for (Object v : (Object[]) val) {
+                        builder.addRepeatedField(fieldByName, v);
+                    }
+                } else if (val instanceof List) {
+                    for (Object v : (List<?>) val) {
+                        builder.addRepeatedField(fieldByName, v);
+                    }
+                } else {
+                    builder.setField(fieldByName, val);
+                }
+            } else if (field instanceof Message && input.containsKey(((Message) field).innerName)) {
+                Message msg = (Message) field;
+                Map<String, Object> value = (Map<String, Object>) input.get(msg.innerName);
+                builder.setField(descr.findFieldByName(msg.innerName), msg.build(value));
+            }
+        }
+        return builder.build();
     }
 
     @Override

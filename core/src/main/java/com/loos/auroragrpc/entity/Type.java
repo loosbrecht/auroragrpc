@@ -1,7 +1,5 @@
 package com.loos.auroragrpc.entity;
 
-import com.google.protobuf.DynamicMessage;
-
 import java.util.Map;
 
 public abstract class Type {
@@ -15,8 +13,6 @@ public abstract class Type {
     public String getName() {
         return name;
     }
-
-    public abstract DynamicMessage Build();
 
     public abstract Map<String, Object> getMessageStructure();
 }

@@ -34,7 +34,6 @@ public class Message extends Type {
         this.builder = original.builder;
         this.descriptor = original.descriptor;
         this.innerName = original.innerName;
-
     }
 
     public List<Type> getFields() {
@@ -73,7 +72,7 @@ public class Message extends Type {
         this.innerName = innerName;
     }
 
-    public DynamicMessage build(Map<String, Object> input) {
+    public DynamicMessage build(Map<String, Object> input) throws InvalidValueException {
         Descriptors.Descriptor descr = builder.getDescriptorForType();
         for (Type field : this.fields) {
             if (field instanceof Field && input.containsKey(field.getName())) {
@@ -94,6 +93,16 @@ public class Message extends Type {
                 Message msg = (Message) field;
                 Map<String, Object> value = (Map<String, Object>) input.get(msg.innerName);
                 builder.setField(descr.findFieldByName(msg.innerName), msg.build(value));
+            } else if (field instanceof Enum && input.containsKey(((Enum) field).getInnerName())) {
+                Enum en = (Enum) field;
+                Descriptors.FieldDescriptor fieldByName = descr.findFieldByName(en.getInnerName());
+                Descriptors.EnumDescriptor enumType = fieldByName.getEnumType();
+                String val = (String) input.get(en.getInnerName());
+                if (!en.isValidValue(val)) {
+                    throw new InvalidValueException(en.getInnerName());
+                }
+                Descriptors.EnumValueDescriptor enumValue = enumType.findValueByName(val);
+                builder.setField(fieldByName, enumValue);
             }
         }
         return builder.build();
@@ -106,6 +115,8 @@ public class Message extends Type {
             Map<String, Object> messageStructure = field.getMessageStructure();
             if (field instanceof Field) {
                 map.put(field.getName(), messageStructure.get(field.getName()));
+            } else if (field instanceof Enum) {
+                map.put(((Enum) field).getInnerName(), messageStructure.get(((Enum) field).getInnerName()));
             } else {
                 map.put(((Message) field).innerName, messageStructure);
             }

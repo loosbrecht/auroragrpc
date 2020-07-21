@@ -3,6 +3,7 @@ package com.loos.auroragrpc.grpc;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.loos.auroragrpc.GrpcService;
+import com.loos.auroragrpc.entity.InvalidValueException;
 import com.loos.auroragrpc.entity.Message;
 import com.loos.auroragrpc.entity.Method;
 import com.loos.auroragrpc.entity.Service;
@@ -26,7 +27,7 @@ class GrpcClientTest {
     DynamicMessage dynMsg;
 
     @BeforeEach
-    void setUp() throws IOException, Descriptors.DescriptorValidationException {
+    void setUp() throws IOException, Descriptors.DescriptorValidationException, InvalidValueException {
         URL url = Thread.currentThread().getContextClassLoader().getResource("descriptor");
         assert url != null;
         File f = new File(url.getPath());
@@ -37,6 +38,7 @@ class GrpcClientTest {
         Message message = grpcService.getMessageList().get(0);
         Map<String, Object> helloRequest = new HashMap<>();
         helloRequest.put("name", "hellooo");
+        helloRequest.put("day", "MONDAY");
         Map<String, Object> inner = new HashMap<>();
         inner.put("inner", "boeh");
         inner.put("numbers", new Double[]{

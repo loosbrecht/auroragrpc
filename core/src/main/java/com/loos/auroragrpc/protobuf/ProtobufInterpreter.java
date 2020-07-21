@@ -4,6 +4,7 @@ import com.github.os72.protobuf.dynamic.DynamicSchema;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.loos.auroragrpc.GrpcService;
+import com.loos.auroragrpc.entity.Enum;
 import com.loos.auroragrpc.entity.*;
 
 import java.io.IOException;
@@ -22,7 +23,7 @@ public class ProtobufInterpreter {
         this.protobufInputStream = protobufInputStream;
     }
 
-    private static Message createMessage(DescriptorProtos.DescriptorProto messageDescriptor) {
+    private Message createMessage(DescriptorProtos.DescriptorProto messageDescriptor, List<Enum> enums) {
         List<DescriptorProtos.FieldDescriptorProto> fields = messageDescriptor.getFieldList();
         String name = messageDescriptor.getName();
         List<Type> types = new ArrayList<>();
@@ -32,10 +33,18 @@ public class ProtobufInterpreter {
                     types.add(new MessagePlaceHolder(field.getTypeName()));
                     continue;
                 case TYPE_ENUM:
-                    //  types.add(new Enum(field.getName()));
+                    for (Enum en : enums) {
+                        String typeName = field.getTypeName();
+                        typeName = typeName.replace("." + packageName + ".", "");
+                        if (en.getName().equals(typeName)) {
+                            Enum newEnum = new Enum(en);
+                            newEnum.setInnerName(field.getName());
+                            types.add(newEnum);
+                        }
+                    }
+                    continue;
                 default:
                     types.add(new Field(field.getName(), field.getType(), field.getType().name()));
-                    continue;
             }
         }
         return new Message(name, "", types);
@@ -61,12 +70,24 @@ public class ProtobufInterpreter {
     private GrpcService parseProtobufDescriptor(DescriptorProtos.FileDescriptorProto descriptorProto) {
 
         DescriptorProtos.ServiceDescriptorProto serviceDescriptor = descriptorProto.getService(0);
-        List<Message> messages = parseForMessages(descriptorProto);
+        List<Enum> enums = parseForEnums(descriptorProto);
+        List<Message> messages = parseForMessages(descriptorProto, enums);
         List<Method> methods = parseForMethods(serviceDescriptor.getMethodList(), messages);
 
         Service service = new Service(serviceDescriptor.getName(), descriptorProto.getPackage(), methods);
-        return new GrpcService(service, messages);
+        return new GrpcService(service, messages, enums);
 
+    }
+
+    private List<Enum> parseForEnums(DescriptorProtos.FileDescriptorProto descriptorProto) {
+        List<Enum> enums = new ArrayList<>();
+        for (DescriptorProtos.EnumDescriptorProto enumDescr : descriptorProto.getEnumTypeList()) {
+            String enumName = enumDescr.getName();
+            List<DescriptorProtos.EnumValueDescriptorProto> valueList = enumDescr.getValueList();
+            List<String> values = valueList.stream().map(DescriptorProtos.EnumValueDescriptorProto::getName).collect(Collectors.toList());
+            enums.add(new Enum(enumName, values));
+        }
+        return enums;
     }
 
     //TODO improve this
@@ -88,9 +109,9 @@ public class ProtobufInterpreter {
 
     }
 
-    private List<Message> parseForMessages(DescriptorProtos.FileDescriptorProto descriptorProto) {
+    private List<Message> parseForMessages(DescriptorProtos.FileDescriptorProto descriptorProto, List<Enum> enums) {
         List<DescriptorProtos.DescriptorProto> messageTypeList = descriptorProto.getMessageTypeList();
-        List<Message> messages = messageTypeList.stream().map(ProtobufInterpreter::createMessage).collect(Collectors.toList());
+        List<Message> messages = messageTypeList.stream().map(m -> createMessage(m, enums)).collect(Collectors.toList());
         for (int i = 0; i < messages.size(); i++) {
             Message message = messages.get(i);
             List<Type> fields = message.getFields();

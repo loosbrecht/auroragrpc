@@ -33,10 +33,11 @@ class MessageTest {
     }
 
     @Test
-    void build() {
+    void build() throws InvalidValueException {
         Message message = grpcService.getMessageList().get(0);
         Map<String, Object> helloRequest = new HashMap<>();
         helloRequest.put("name", "hellooo");
+        helloRequest.put("day", "MONDAY");
         Map<String, Object> inner = new HashMap<>();
         inner.put("inner", "boeh");
         inner.put("numbers", new Double[]{

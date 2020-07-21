@@ -32,7 +32,8 @@ message Empty{
 }
 
 enum DayOfWeek {
-  MONDAY = 0;
-  TUESDAY = 1;
+  UNDEFINED = 0;
+  MONDAY = 1;
+  TUESDAY = 2;
 
 }

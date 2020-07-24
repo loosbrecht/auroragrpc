@@ -4,7 +4,8 @@ import java.util.Map;
 
 public abstract class Type {
 
-    private final String name;
+    protected final String name;
+    protected boolean repeated;
 
     public Type(String name) {
         this.name = name;
@@ -14,5 +15,8 @@ public abstract class Type {
         return name;
     }
 
+    //TODO fix so that repeated objects are shown
     public abstract Map<String, Object> getMessageStructure();
+
+
 }

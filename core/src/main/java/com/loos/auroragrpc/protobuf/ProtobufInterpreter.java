@@ -23,32 +23,6 @@ public class ProtobufInterpreter {
         this.protobufInputStream = protobufInputStream;
     }
 
-    private Message createMessage(DescriptorProtos.DescriptorProto messageDescriptor, List<Enum> enums) {
-        List<DescriptorProtos.FieldDescriptorProto> fields = messageDescriptor.getFieldList();
-        String name = messageDescriptor.getName();
-        List<Type> types = new ArrayList<>();
-        for (DescriptorProtos.FieldDescriptorProto field : fields) {
-            switch (field.getType()) {
-                case TYPE_MESSAGE:
-                    types.add(new MessagePlaceHolder(field.getTypeName()));
-                    continue;
-                case TYPE_ENUM:
-                    for (Enum en : enums) {
-                        String typeName = field.getTypeName();
-                        typeName = typeName.replace("." + packageName + ".", "");
-                        if (en.getName().equals(typeName)) {
-                            Enum newEnum = new Enum(en);
-                            newEnum.setInnerName(field.getName());
-                            types.add(newEnum);
-                        }
-                    }
-                    continue;
-                default:
-                    types.add(new Field(field.getName(), field.getType(), field.getType().name()));
-            }
-        }
-        return new Message(name, "", types);
-    }
 
     public GrpcService parseProtobufFile() throws IOException, Descriptors.DescriptorValidationException {
         DynamicSchema dynamicSchema = DynamicSchema.parseFrom(protobufInputStream);
@@ -64,6 +38,7 @@ public class ProtobufInterpreter {
         service.setSchema(dynamicSchema);
         service.getMessageList().forEach(m -> m.createBuilder(dynamicSchema));
         service.getMessageList().forEach(m -> m.setDescriptor(descriptorProto));
+        service.getMessageList().forEach(Message::addAdditionalAttributes);
         return service;
     }
 
@@ -112,6 +87,11 @@ public class ProtobufInterpreter {
     private List<Message> parseForMessages(DescriptorProtos.FileDescriptorProto descriptorProto, List<Enum> enums) {
         List<DescriptorProtos.DescriptorProto> messageTypeList = descriptorProto.getMessageTypeList();
         List<Message> messages = messageTypeList.stream().map(m -> createMessage(m, enums)).collect(Collectors.toList());
+        replaceMessagePlaceHolder(messageTypeList, messages);
+        return messages;
+    }
+
+    private void replaceMessagePlaceHolder(List<DescriptorProtos.DescriptorProto> messageTypeList, List<Message> messages) {
         for (int i = 0; i < messages.size(); i++) {
             Message message = messages.get(i);
             List<Type> fields = message.getFields();
@@ -128,7 +108,33 @@ public class ProtobufInterpreter {
                 }
             }
         }
-        return messages;
+    }
+
+    private Message createMessage(DescriptorProtos.DescriptorProto messageDescriptor, List<Enum> enums) {
+        List<DescriptorProtos.FieldDescriptorProto> fields = messageDescriptor.getFieldList();
+        String name = messageDescriptor.getName();
+        List<Type> types = new ArrayList<>();
+        for (DescriptorProtos.FieldDescriptorProto field : fields) {
+            switch (field.getType()) {
+                case TYPE_MESSAGE:
+                    types.add(new MessagePlaceHolder(field.getTypeName()));
+                    continue;
+                case TYPE_ENUM:
+                    for (Enum en : enums) {
+                        String typeName = field.getTypeName();
+                        typeName = typeName.replace("." + packageName + ".", "");
+                        if (en.getName().equals(typeName)) {
+                            Enum newEnum = new Enum(en);
+                            newEnum.setInnerName(field.getName());
+                            types.add(newEnum);
+                        }
+                    }
+                    continue;
+                default:
+                    types.add(new Field(field.getName(), field.getType(), field.getType().name()));
+            }
+        }
+        return new Message(name, "", types);
     }
 
     private Optional<Message> findMessage(List<Message> messages, String name) {

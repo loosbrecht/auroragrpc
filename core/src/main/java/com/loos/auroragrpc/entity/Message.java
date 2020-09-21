@@ -7,6 +7,7 @@ import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,24 +17,22 @@ public class Message extends Type {
     private List<Type> fields;
     private DynamicMessage.Builder builder;
     private Descriptors.Descriptor descriptor;
-    private String innerName;
 
     public Message(String name, String innerName, List<Type> fields) {
-        super(name);
+        super(name, innerName);
         this.fields = fields;
-        this.innerName = innerName;
     }
 
     public Message(String name) {
-        super(name);
+        super(name, name);
     }
 
+
     public Message(Message original) {
-        super(original.getName());
+        super(original.getName(), original.innerName);
         this.fields = original.getFields();
         this.builder = original.builder;
         this.descriptor = original.descriptor;
-        this.innerName = original.innerName;
     }
 
     public List<Type> getFields() {
@@ -75,34 +74,51 @@ public class Message extends Type {
     public DynamicMessage build(Map<String, Object> input) throws InvalidValueException {
         Descriptors.Descriptor descr = builder.getDescriptorForType();
         for (Type field : this.fields) {
-            if (field instanceof Field && input.containsKey(field.getName())) {
-                Descriptors.FieldDescriptor fieldByName = descr.findFieldByName(field.getName());
-                Object val = input.get(field.getName());
-                if (val.getClass().isArray()) {
-                    for (Object v : (Object[]) val) {
-                        builder.addRepeatedField(fieldByName, v);
-                    }
-                } else if (val instanceof List) {
-                    for (Object v : (List<?>) val) {
-                        builder.addRepeatedField(fieldByName, v);
-                    }
-                } else {
-                    builder.setField(fieldByName, val);
-                }
-            } else if (field instanceof Message && input.containsKey(((Message) field).innerName)) {
+            Object fieldValue = null;
+            Descriptors.FieldDescriptor fieldDescriptor = null;
+            if (field instanceof Field && input.containsKey(field.getInnerName())) {
+                fieldDescriptor = descr.findFieldByName(field.getName());
+                fieldValue = input.get(field.getName());
+            } else if (field instanceof Message && input.containsKey(field.getInnerName())) {
                 Message msg = (Message) field;
-                Map<String, Object> value = (Map<String, Object>) input.get(msg.innerName);
-                builder.setField(descr.findFieldByName(msg.innerName), msg.build(value));
-            } else if (field instanceof Enum && input.containsKey(((Enum) field).getInnerName())) {
+                fieldDescriptor = descr.findFieldByName(msg.getInnerName());
+                if (input.get(msg.getInnerName()) instanceof List) {
+                    List<Object> lst = new ArrayList<>();
+                    for (Object v : (List<?>) input.get(msg.getInnerName())) {
+                        DynamicMessage fValue = msg.build((Map<String, Object>) v);
+                        lst.add(fValue);
+                    }
+                    fieldValue = lst;
+                } else {
+                    Map<String, Object> value = (Map<String, Object>) input.get(msg.getInnerName());
+                    fieldValue = msg.build(value);
+                }
+            } else if (field instanceof Enum && input.containsKey(field.getInnerName())) {
                 Enum en = (Enum) field;
-                Descriptors.FieldDescriptor fieldByName = descr.findFieldByName(en.getInnerName());
-                Descriptors.EnumDescriptor enumType = fieldByName.getEnumType();
+                fieldDescriptor = descr.findFieldByName(en.getInnerName());
+                Descriptors.EnumDescriptor enumType = fieldDescriptor.getEnumType();
                 String val = (String) input.get(en.getInnerName());
                 if (!en.isValidValue(val)) {
                     throw new InvalidValueException(en.getInnerName());
                 }
                 Descriptors.EnumValueDescriptor enumValue = enumType.findValueByName(val);
-                builder.setField(fieldByName, enumValue);
+                fieldValue = enumValue;
+            }
+            if (fieldDescriptor == null) {
+                continue;
+            }
+            if (field.repeated) {
+                if (fieldValue instanceof Object[]) {
+                    for (Object v : (Object[]) fieldValue) {
+                        builder.addRepeatedField(fieldDescriptor, v);
+                    }
+                } else if (fieldValue instanceof List) {
+                    for (Object v : (List<?>) fieldValue) {
+                        builder.addRepeatedField(fieldDescriptor, v);
+                    }
+                }
+            } else {
+                builder.setField(fieldDescriptor, fieldValue);
             }
         }
         return builder.build();
@@ -113,15 +129,32 @@ public class Message extends Type {
         Map<String, Object> map = new HashMap<>();
         for (Type field : this.getFields()) {
             Map<String, Object> messageStructure = field.getMessageStructure();
-            if (field instanceof Field) {
-                map.put(field.getName(), messageStructure.get(field.getName()));
-            } else if (field instanceof Enum) {
-                map.put(((Enum) field).getInnerName(), messageStructure.get(((Enum) field).getInnerName()));
+            Object value = null;
+            if (field instanceof Field || field instanceof Enum) {
+                value = messageStructure.get(field.getInnerName());
             } else {
-                map.put(((Message) field).innerName, messageStructure);
+                value = messageStructure;
+            }
+            if (field.repeated) {
+                List<Object> lst = new ArrayList<>();
+                lst.add(value);
+                map.put(field.getInnerName(), lst);
+            } else {
+                map.put(field.getInnerName(), value);
             }
         }
         return map;
+    }
+
+    public void addAdditionalAttributes() {
+        Descriptors.Descriptor descr = builder.getDescriptorForType();
+        for (Type field : this.fields) {
+            Descriptors.FieldDescriptor fieldDescr = descr.findFieldByName(field.getInnerName());
+            if (field instanceof Message) {
+                ((Message) field).addAdditionalAttributes();
+            }
+            field.repeated = fieldDescr.isRepeated();
+        }
     }
 
     public String getJsonStructure() {

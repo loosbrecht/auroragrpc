@@ -13,6 +13,7 @@ message HelloRequest {
   string name = 1;
   InnerRequest inner = 2;
   DayOfWeek day = 3;
+  repeated InnerRequest repeatedInner = 4;
 }
 
 message HelloReply {

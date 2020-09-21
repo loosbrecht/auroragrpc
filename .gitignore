@@ -1,2 +1,10 @@
 /.idea/
 /core/target/
+
+auroragrpc-ui/target/
+
+auroragrpc-ui/node_modules/
+
+node_modules/
+
+auroragrpc-ui/webpack.generated.js

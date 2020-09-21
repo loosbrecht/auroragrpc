@@ -10,14 +10,14 @@ public class Enum extends Type {
     private String innerName;
 
     public Enum(String name, List<String> values) {
-        super(name);
+        super(name, name);
         this.values = values;
     }
 
     public Enum(Enum other) {
-        super(other.getName());
+        super(other.getName(), other.innerName);
         this.values = other.values;
-        this.innerName = other.innerName;
+
     }
 
     @Override

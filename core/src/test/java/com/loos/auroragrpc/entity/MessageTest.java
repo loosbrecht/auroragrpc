@@ -12,7 +12,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 class MessageTest {
@@ -44,7 +46,16 @@ class MessageTest {
                 3.14, 22.23
         });
         inner.put("correct", true);
-        helloRequest.put("inner", inner);
+
+        Map<String, Object> inner2 = new HashMap<>();
+        inner2.put("inner", "waaaaaah");
+        inner2.put("numbers", new Double[]{
+                3.14, 22.23, 8888.0, 444.2
+        });
+        List<Map<String, Object>> lst = new ArrayList<>();
+        lst.add(inner);
+        lst.add(inner2);
+        helloRequest.put("repeatedInner", lst);
         DynamicMessage build = message.build(helloRequest);
         System.out.println(build);
     }

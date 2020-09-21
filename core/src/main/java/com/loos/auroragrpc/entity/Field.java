@@ -13,7 +13,7 @@ public class Field extends Type {
 
 
     public Field(String name, DescriptorProtos.FieldDescriptorProto.Type descriptorType, String typeName) {
-        super(name);
+        super(name, name);
         this.descriptorType = descriptorType;
         this.typeName = typeName;
     }

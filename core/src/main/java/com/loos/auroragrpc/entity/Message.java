@@ -56,7 +56,6 @@ public class Message extends Type {
         return descriptor;
     }
 
-
     public void setDescriptor(DescriptorProtos.FileDescriptorProto descriptorProto) {
         List<DescriptorProtos.DescriptorProto> messageTypeList = descriptorProto.getMessageTypeList();
         for (DescriptorProtos.DescriptorProto proto : messageTypeList) {
@@ -75,38 +74,18 @@ public class Message extends Type {
         Descriptors.Descriptor descr = builder.getDescriptorForType();
         for (Type field : this.fields) {
             Object fieldValue = null;
-            Descriptors.FieldDescriptor fieldDescriptor = null;
-            if (field instanceof Field && input.containsKey(field.getInnerName())) {
-                fieldDescriptor = descr.findFieldByName(field.getName());
-                fieldValue = input.get(field.getName());
-            } else if (field instanceof Message && input.containsKey(field.getInnerName())) {
-                Message msg = (Message) field;
-                fieldDescriptor = descr.findFieldByName(msg.getInnerName());
-                if (input.get(msg.getInnerName()) instanceof List) {
-                    List<Object> lst = new ArrayList<>();
-                    for (Object v : (List<?>) input.get(msg.getInnerName())) {
-                        DynamicMessage fValue = msg.build((Map<String, Object>) v);
-                        lst.add(fValue);
-                    }
-                    fieldValue = lst;
-                } else {
-                    Map<String, Object> value = (Map<String, Object>) input.get(msg.getInnerName());
-                    fieldValue = msg.build(value);
-                }
-            } else if (field instanceof Enum && input.containsKey(field.getInnerName())) {
-                Enum en = (Enum) field;
-                fieldDescriptor = descr.findFieldByName(en.getInnerName());
-                Descriptors.EnumDescriptor enumType = fieldDescriptor.getEnumType();
-                String val = (String) input.get(en.getInnerName());
-                if (!en.isValidValue(val)) {
-                    throw new InvalidValueException(en.getInnerName());
-                }
-                Descriptors.EnumValueDescriptor enumValue = enumType.findValueByName(val);
-                fieldValue = enumValue;
-            }
-            if (fieldDescriptor == null) {
+            Descriptors.FieldDescriptor fieldDescriptor = descr.findFieldByName(field.getInnerName());
+            if (!input.containsKey(field.getInnerName()) || fieldDescriptor == null) {
                 continue;
             }
+            if (field instanceof Field) {
+                fieldValue = input.get(field.getName());
+            } else if (field instanceof Message) {
+                fieldValue = buildMsg(input, (Message) field);
+            } else if (field instanceof Enum) {
+                fieldValue = buildEnum(input, (Enum) field, fieldDescriptor);
+            }
+            //add field to the builder
             if (field.repeated) {
                 if (fieldValue instanceof Object[]) {
                     for (Object v : (Object[]) fieldValue) {
@@ -122,6 +101,36 @@ public class Message extends Type {
             }
         }
         return builder.build();
+    }
+
+    private Object buildMsg(Map<String, Object> input, Message field) throws InvalidValueException {
+        Object fieldValue;
+        Message msg = field;
+        if (input.get(msg.getInnerName()) instanceof List) {
+            List<Object> lst = new ArrayList<>();
+            for (Object v : (List<?>) input.get(msg.getInnerName())) {
+                DynamicMessage fValue = msg.build((Map<String, Object>) v);
+                lst.add(fValue);
+            }
+            fieldValue = lst;
+        } else {
+            Map<String, Object> value = (Map<String, Object>) input.get(msg.getInnerName());
+            fieldValue = msg.build(value);
+        }
+        return fieldValue;
+    }
+
+    private Object buildEnum(Map<String, Object> input, Enum field, Descriptors.FieldDescriptor fieldDescriptor) throws InvalidValueException {
+        Object fieldValue;
+        Enum en = field;
+        Descriptors.EnumDescriptor enumType = fieldDescriptor.getEnumType();
+        String val = (String) input.get(en.getInnerName());
+        if (!en.isValidValue(val)) {
+            throw new InvalidValueException(en.getInnerName());
+        }
+        Descriptors.EnumValueDescriptor enumValue = enumType.findValueByName(val);
+        fieldValue = enumValue;
+        return fieldValue;
     }
 
     @Override

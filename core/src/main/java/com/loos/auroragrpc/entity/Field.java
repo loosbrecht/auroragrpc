@@ -11,7 +11,6 @@ public class Field extends Type {
     private final String typeName;
     private final DescriptorProtos.FieldDescriptorProto.Type descriptorType;
 
-
     public Field(String name, DescriptorProtos.FieldDescriptorProto.Type descriptorType, String typeName) {
         super(name, name);
         this.descriptorType = descriptorType;

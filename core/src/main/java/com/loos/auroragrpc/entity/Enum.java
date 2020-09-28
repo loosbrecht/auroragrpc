@@ -17,7 +17,6 @@ public class Enum extends Type {
     public Enum(Enum other) {
         super(other.getName(), other.innerName);
         this.values = other.values;
-
     }
 
     @Override

@@ -12,3 +12,5 @@ auroragrpc-ui/webpack.generated.js
 shell/target/
 
 shell/spring-shell.log
+
+*.log

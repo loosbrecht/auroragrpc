@@ -6,7 +6,6 @@ import com.google.protobuf.Descriptors;
 import com.loos.auroragrpc.core.GrpcService;
 import com.loos.auroragrpc.core.entity.*;
 import com.loos.auroragrpc.core.entity.Enum;
-import com.loos.auroragrpc.shell.entity.*;
 
 import java.io.IOException;
 import java.io.InputStream;

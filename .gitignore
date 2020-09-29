@@ -8,3 +8,7 @@ auroragrpc-ui/node_modules/
 node_modules/
 
 auroragrpc-ui/webpack.generated.js
+
+shell/target/
+
+shell/spring-shell.log

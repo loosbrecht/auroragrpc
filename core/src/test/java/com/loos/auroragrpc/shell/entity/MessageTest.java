@@ -1,5 +1,7 @@
 package com.loos.auroragrpc.shell.entity;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.loos.auroragrpc.core.GrpcService;
@@ -60,5 +62,20 @@ class MessageTest {
         helloRequest.put("repeatedInner", lst);
         DynamicMessage build = message.build(helloRequest);
         System.out.println(build);
+    }
+
+    @Test
+    void buildFromString() throws InvalidValueException, JsonProcessingException {
+        Message msg = grpcService.getMessageList().get(0);
+        System.out.println(msg.getName());
+        String input = "{\"repeatedInner\":[{\"correct\":true,\"numbers\":[1.4,34.2],\"inner\":\"dit is een experiment\"},{\"numbers\":[1.2,3.14],\"inner\":\"dit is een nog iets anders\"}],\"name\":\"dit is de naame\",\"day\":\"MONDAY\"}";
+        Map<String, Object> mp = GetMessageInput(input);
+        DynamicMessage build = msg.build(mp);
+        System.out.println(build);
+    }
+    private Map<String, Object> GetMessageInput(String input) throws  JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> map = mapper.readValue(input, Map.class);
+        return map;
     }
 }

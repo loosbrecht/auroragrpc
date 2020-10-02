@@ -23,6 +23,12 @@ public class GrpcClient {
         this.channel = builder.build();
     }
 
+    public GrpcClient(String address) {
+        ManagedChannelBuilder<?> builder = ManagedChannelBuilder.forTarget(address);
+        builder.usePlaintext();
+        this.channel = builder.build();
+    }
+
     public GrpcClient AddService(Service service) {
         this.service = service;
         return this;

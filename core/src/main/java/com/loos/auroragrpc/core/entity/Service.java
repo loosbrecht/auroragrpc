@@ -37,4 +37,13 @@ public class Service {
     public List<Method> getMethods() {
         return methods;
     }
+
+    public Method findMethod(String name) {
+        for (Method method : methods) {
+            if (method.getName().equals(name)) {
+                return method;
+            }
+        }
+        return null;
+    }
 }

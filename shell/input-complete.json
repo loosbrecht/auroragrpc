@@ -1,0 +1,30 @@
+{
+  "service": "Greeter",
+  "host": "localhost:8000",
+  "execute": [
+    {
+      "name" : "SayHello name",
+      "method": "SayHello",
+      "input": {
+        "repeatedInner": [
+          {
+            "correct": true,
+            "numbers": [
+              1.4,34.2
+            ],
+            "inner": "dit is een experiment"
+          },
+          {
+            "numbers": [
+              1.2,3.14
+            ],
+            "inner": "dit is een nog iets anders"
+          }
+        ],
+        "name": "dit is de naame",
+        "day": "MONDAY"
+      }
+    }
+  ]
+}
+

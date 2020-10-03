@@ -2,6 +2,7 @@ package com.loos.auroragrpc.shell.commands;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.loos.auroragrpc.core.GrpcService;
@@ -12,6 +13,8 @@ import com.loos.auroragrpc.core.grpc.GrpcClient;
 import com.loos.auroragrpc.core.protobuf.ProtobufInterpreter;
 import com.loos.auroragrpc.shell.config.ProgressCounter;
 import com.loos.auroragrpc.shell.config.ShellHelper;
+import com.loos.auroragrpc.shell.entity.Executor;
+import com.loos.auroragrpc.shell.entity.JsonInput;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
@@ -19,7 +22,6 @@ import org.springframework.shell.standard.ShellOption;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Map;
 
@@ -36,8 +38,8 @@ public class GrpcCommand {
 
 
     @ShellMethod("Provide path to a proto descriptor file or a folder")
-    public void loadDescriptor(@ShellOption({"-P", "--path"}) String path) {
-        File f = new File(path);
+    public void loadDescriptor(@ShellOption({"-d", "--descriptor"}) String descriptor) {
+        File f = new File(descriptor);
         if (f.isDirectory()) {
             //do something
         } else {
@@ -85,30 +87,20 @@ public class GrpcCommand {
             shellHelper.printError("Method not found");
             return;
         }
-        DynamicMessage msg = null;
-        try {
-            FileInputStream inputStream = new FileInputStream(new File(input));
-            byte[] bytes = inputStream.readAllBytes();
-            Map<String, Object> inputMap = GetMessageInput(new String(bytes));
-            msg = m.getRequest().build(inputMap);
-
-        } catch (JsonProcessingException e) {
-            shellHelper.printError("Can't parse input\n error: " + e.getMessage());
-            return;
-        } catch (InvalidValueException e) {
-            shellHelper.printError("Input can't be mapped on " + m.getName() + "\nerror: " + e.getMessage());
-            return;
-        } catch (FileNotFoundException e) {
-            shellHelper.printError("Input file not found");
-            return;
-        } catch (IOException e) {
-            shellHelper.printError("Input can't be read");
+        DynamicMessage msg = prepareMessage(m, input);
+        if (msg == null) {
             return;
         }
+
+        final DynamicMessage[] resp = executeMethod(host, m, msg);
+        shellHelper.printInfo("Response: ");
+        shellHelper.printSuccess(resp[0].toString());
+    }
+
+    private DynamicMessage[] executeMethod(String host, Method m, DynamicMessage msg) {
         DynamicMessage finalMsg = msg;
         final DynamicMessage[] resp = {null};
         final boolean[] done = {false};
-
         //TODO refactor threading
         Thread thread = new Thread(new Runnable() {
             @Override
@@ -121,9 +113,8 @@ public class GrpcCommand {
             }
         });
         thread.start();
-
         try {
-            while (!done[0]){
+            while (!done[0]) {
                 progressCounter.display();
                 Thread.sleep(100);
             }
@@ -131,12 +122,75 @@ public class GrpcCommand {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
         progressCounter.reset();
-        shellHelper.printInfo("Response: ");
-        shellHelper.printSuccess(resp[0].toString());
+        return resp;
     }
 
-    private Map<String, Object> GetMessageInput(String input) throws JsonProcessingException {
+    @ShellMethod("execute all the methods in the input json. This will not load the descriptor for reuse")
+    public void executeJson(@ShellOption({"-d", "--descriptor"}) String descriptor, @ShellOption({"-i", "--input"}) String input) throws IOException {
+        System.out.println("Working Directory = " + System.getProperty("user.dir"));
+        loadDescriptor(descriptor);
+
+        FileInputStream inputStream = new FileInputStream(new File(input));
+        byte[] bytes = inputStream.readAllBytes();
+        String s = new String(bytes);
+        JsonInput jsonInput = new Gson().fromJson(s, JsonInput.class);
+
+        shellHelper.printInfo("Start executing for service: " + jsonInput.getService());
+        for (Executor executor : jsonInput.getExecute()) {
+            shellHelper.printInfo("Execute method: " + executor.getName());
+            Method method = this.service.findMethod(executor.getMethod());
+            try {
+                DynamicMessage msg = method.getRequest().build(executor.getInput());
+                DynamicMessage[] resp = executeMethod(jsonInput.getHost(), method, msg);
+                shellHelper.printInfo("Response: ");
+                shellHelper.printSuccess(resp[0].toString());
+
+            } catch (InvalidValueException e) {
+                e.printStackTrace();
+            }
+
+
+        }
+
+        reset();
+    }
+
+    @ShellMethod("reset the environment")
+    public void reset() {
+        this.service = null;
+        this.grpcService = null;
+    }
+
+    private DynamicMessage prepareMessage(Method m, String inputPath) {
+        try {
+            Map<String, Object> inputMap = getMessageInputFromFile(inputPath);
+            if (inputMap == null) {
+                return null;
+            }
+            return m.getRequest().build(inputMap);
+
+        } catch (InvalidValueException e) {
+            shellHelper.printError("Input can't be mapped on " + m.getName() + "\nerror: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private Map<String, Object> getMessageInputFromFile(String inputPath) {
+        try {
+            FileInputStream inputStream = new FileInputStream(new File(inputPath));
+            byte[] bytes = inputStream.readAllBytes();
+            String s = new String(bytes);
+            return getMessageInput(s);
+
+        } catch (IOException e) {
+            shellHelper.printError("Error processing input");
+            return null;
+        }
+    }
+
+    private Map<String, Object> getMessageInput(String input) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> map = mapper.readValue(input, Map.class);
         return map;
